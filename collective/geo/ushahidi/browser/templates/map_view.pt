@@ -1,0 +1,194 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="collective.geo.ushahidi">
+
+<head>
+  
+  <metal:styleslot fill-slot="style_slot">
+  <link type="text/css" rel="stylesheet"
+        href="++resource++collective.geo.ushahidi.css/jquery-ui-themeroller.css" 
+        tal:attributes="href string:${context/portal_url}/${attrs/href}" />
+  <link type="text/css" rel="stylesheet"
+        href="++resource++collective.geo.ushahidi.css/openlayers.css" 
+        tal:attributes="href string:${context/portal_url}/${attrs/href}" />
+  <link type="text/css" rel="stylesheet"
+        href="++resource++collective.geo.ushahidi.css/ushahidi.css" 
+        tal:attributes="href string:${context/portal_url}/${attrs/href}" />
+  </metal:styleslot>
+  
+  <metal:javascriptslot fill-slot="javascript_head_slot">
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/jquery.ui.min.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/OpenLayers.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/ushahidi.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/jquery.pngFix.pack.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/jquery.timeago.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/OpenStreetMap.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/selectToUISlider.jQuery.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/jquery.jqplot.min.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/jqplot.dateAxisRenderer.min.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="ushahidi-map-settings.js"
+          tal:attributes="src string:${context/absolute_url}/${attrs/src}">
+  </script>
+  <script type="text/javascript"
+          src="++resource++collective.geo.ushahidi.js/ushahidi_map.js"
+          tal:attributes="src string:${context/portal_url}/${attrs/src}">
+  </script>
+  </metal:javascriptslot>
+  
+</head>
+
+<body>
+
+<metal:content-core fill-slot="content-core">
+<metal:content-core define-macro="content-core">
+
+<div class="floatbox withright" id="map_mainmiddle">
+
+  <!-- right column -->
+  <div class="clearingfix" id="map_right">
+
+    <!-- category filters -->
+    <div class="cat-filters clearingfix">
+      <strong>Category Filter</strong>
+    </div>
+    <ul class="category-filters" id="category_switch">
+      <li>
+        <a href="#" id="cat_0" class="active">
+          <span style="background-color:#CC0000" class="swatch"></span>
+          <span class="category-title">All Categories</span>
+        </a>
+      </li>
+      <li>
+        <a title="Category 1" id="cat_1" href="#"><span style="background-color:#9900CC" class="swatch"></span><span class="category-title">Category 1</span></a><div id="child_1" class="hide"></div></li><li><a title="Category 2" id="cat_2" href="#"><span style="background-color:#3300FF" class="swatch"></span><span class="category-title">Category 2</span></a><div id="child_2" class="hide"></div></li><li><a title="Category 3" id="cat_3" href="#"><span style="background-color:#663300" class="swatch"></span><span class="category-title">Category 3</span></a><div id="child_3" class="hide"></div></li><li><a title="Reports from trusted reporters" id="cat_4" href="#"><span style="background-color:#339900" class="swatch"></span><span class="category-title">Trusted Reports</span></a><div id="child_4" class="hide"></div>
+      </li>
+    </ul>
+    <!-- / category filters -->
+  </div>
+  <!-- / right column -->
+
+  <!-- content column -->
+  <div class="clearingfix" id="map_content">
+    <div class="floatbox">
+
+      <!-- filters -->
+      <div class="filters clearingfix">
+        <div style="float:left; width: 100%">
+          <strong>Filters</strong>
+          <ul>
+            <li>
+              <a href="#" class="active" id="media_0"><span>All</span></a>
+            </li>
+            <li><a href="#" id="media_4"><span>News</span></a></li>
+            <li><a href="#" id="media_1"><span>Pictures</span></a></li>
+            <li><a href="#" id="media_2"><span>Video</span></a></li>
+          </ul>
+        </div>
+      </div>
+      <!-- / filters -->
+
+      <!-- map -->
+      <div id="map" class="map"></div>
+
+      <div style="clear:both;"></div>
+
+      <div id="mapStatus">
+        <div style="border-right: solid 1px #999" id="mapScale"></div>
+        <div style="min-width: 135px;border-right: solid 1px #999;text-align: center"
+             id="mapMousePosition"></div>
+        <div style="border-right: solid 1px #999" id="mapProjection"></div>
+        <div id="mapOutput"></div>
+      </div>
+
+      <div style="clear:both;"></div>
+
+      <!-- / map -->
+      
+      <div class="slider-holder">
+        <form method="get" action="."
+              tal:attributes="action string:${context/absolute_url}/${view/__name__}">
+          <input type="hidden" id="currentCat" name="currentCat" value="0">
+          <fieldset>
+            <label for="startDate">From:</label>
+            <select id="startDate" name="startDate">
+              <optgroup label="2012">
+                <option selected="selected"
+                        value="1333238400">Apr 2012</option>
+                <option value="1335830400">May 2012</option>
+                <option value="1338508800">Jun 2012</option>
+                <option value="1341100800">Jul 2012</option>
+                <option value="1343779200">Aug 2012</option>
+                <option value="1346457600">Sep 2012</option>
+                <option value="1349049600">Oct 2012</option>
+                <option value="1351728000">Nov 2012</option>
+                <option value="1354320000">Dec 2012</option>
+              </optgroup>
+              <optgroup label="2013">
+                <option value="1356998400">Jan 2013</option>
+              </optgroup>
+            </select>
+            <label for="endDate">to:</label>
+            <select id="endDate" name="endDate">
+              <optgroup label="2012">
+                <option value="1335830399">Apr 2012</option>
+                <option value="1338508799">May 2012</option>
+                <option value="1341100799">Jun 2012</option>
+                <option value="1343779199">Jul 2012</option>
+                <option value="1346457599">Aug 2012</option>
+                <option value="1349049599">Sep 2012</option>
+                <option value="1351727999">Oct 2012</option>
+                <option value="1354319999">Nov 2012</option>
+                <option value="1356998399">Dec 2012</option>
+              </optgroup>
+              <optgroup label="2013">
+                <option selected="selected"
+                        value="1359676799">Jan 2013</option>
+              </optgroup>
+            </select>
+          </fieldset>
+        </form>
+      </div>
+
+      <div class="graph-holder" id="graph"></div>
+    </div>
+  </div>
+  <!-- / content column -->
+
+  </div>
+
+</metal:content-core>
+</metal:content-core>
+
+</body>
+</html>
