@@ -85,16 +85,23 @@
     </div>
     <ul class="category-filters" id="category_switch">
       <li>
-        <a href="#" id="cat_0" class="active">
-          <span style="background-color:#CC0000" class="swatch"></span>
+        <a href="#" id="cat_" class="active">
           <span class="category-title">All Categories</span>
         </a>
       </li>
+      <tal:cats repeat="cat view/getCategories">
       <li>
-        <a title="Category 1" id="cat_1" href="#"><span style="background-color:#9900CC" class="swatch"></span><span class="category-title">Category 1</span></a><div id="child_1" class="hide"></div></li><li><a title="Category 2" id="cat_2" href="#"><span style="background-color:#3300FF" class="swatch"></span><span class="category-title">Category 2</span></a><div id="child_2" class="hide"></div></li><li><a title="Category 3" id="cat_3" href="#"><span style="background-color:#663300" class="swatch"></span><span class="category-title">Category 3</span></a><div id="child_3" class="hide"></div></li><li><a title="Reports from trusted reporters" id="cat_4" href="#"><span style="background-color:#339900" class="swatch"></span><span class="category-title">Trusted Reports</span></a><div id="child_4" class="hide"></div>
+        <a title="Category 1" id="cat_" href="#"
+           tal:attributes="title cat;
+                           id string:${attrs/id}${cat}">
+          <span class="category-title"
+                tal:content="cat">Category 1</span>
+        </a>
       </li>
+      </tal:cats>
     </ul>
     <!-- / category filters -->
+
   </div>
   <!-- / right column -->
 
@@ -108,11 +115,14 @@
           <strong>Filters</strong>
           <ul>
             <li>
-              <a href="#" class="active" id="media_0"><span>All</span></a>
+              <a href="#" class="active" id="media_"><span>All</span></a>
             </li>
-            <li><a href="#" id="media_4"><span>News</span></a></li>
-            <li><a href="#" id="media_1"><span>Pictures</span></a></li>
-            <li><a href="#" id="media_2"><span>Video</span></a></li>
+            <li tal:repeat="ctype view/getTypes">
+              <a href="#" id="media_"
+                 tal:attributes="id string:${attrs/id}${ctype/id}">
+                <span tal:content="ctype/title">News</span>
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -139,42 +149,34 @@
         <form method="get" action="."
               tal:attributes="action string:${context/absolute_url}/${view/__name__}">
           <input type="hidden" id="currentCat" name="currentCat" value="0">
-          <fieldset>
+          <fieldset tal:define="years view/getDates">
             <label for="startDate">From:</label>
             <select id="startDate" name="startDate">
-              <optgroup label="2012">
-                <option selected="selected"
-                        value="1333238400">Apr 2012</option>
-                <option value="1335830400">May 2012</option>
-                <option value="1338508800">Jun 2012</option>
-                <option value="1341100800">Jul 2012</option>
-                <option value="1343779200">Aug 2012</option>
-                <option value="1346457600">Sep 2012</option>
-                <option value="1349049600">Oct 2012</option>
-                <option value="1351728000">Nov 2012</option>
-                <option value="1354320000">Dec 2012</option>
+              <tal:years repeat="year years">
+              <optgroup label="2012"
+                        tal:define="months python:year[1]"
+                        tal:attributes="label python:year[0]">
+                <tal:months repeat="month months">
+                <option value="1333238400"
+                        tal:attributes="value month/timestamp"
+                        tal:content="month/label">Apr 2012</option>
+                </tal:months>
               </optgroup>
-              <optgroup label="2013">
-                <option value="1356998400">Jan 2013</option>
-              </optgroup>
+              </tal:years>
             </select>
             <label for="endDate">to:</label>
             <select id="endDate" name="endDate">
-              <optgroup label="2012">
-                <option value="1335830399">Apr 2012</option>
-                <option value="1338508799">May 2012</option>
-                <option value="1341100799">Jun 2012</option>
-                <option value="1343779199">Jul 2012</option>
-                <option value="1346457599">Aug 2012</option>
-                <option value="1349049599">Sep 2012</option>
-                <option value="1351727999">Oct 2012</option>
-                <option value="1354319999">Nov 2012</option>
-                <option value="1356998399">Dec 2012</option>
+              <tal:years repeat="year years">
+              <optgroup label="2012"
+                        tal:define="months python:year[1]"
+                        tal:attributes="label python:year[0]">
+                <tal:months repeat="month months">
+                <option value="1333238400"
+                        tal:attributes="value month/timestamp"
+                        tal:content="month/label">Apr 2012</option>
+                </tal:months>
               </optgroup>
-              <optgroup label="2013">
-                <option selected="selected"
-                        value="1359676799">Jan 2013</option>
-              </optgroup>
+              </tal:years>
             </select>
           </fieldset>
         </form>

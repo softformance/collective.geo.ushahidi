@@ -254,7 +254,7 @@ jQuery(function() {
   
   // Media Filter Action
   $('.filters li a').click(function() {
-    var mediaType = parseFloat(this.id.replace('media_', '')) || 0;
+    var mediaType = this.id.replace('media_', '') || 0;
     
     $('.filters li a').attr('class', '');
     $(this).addClass('active');
