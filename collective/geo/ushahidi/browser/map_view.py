@@ -191,6 +191,7 @@ class UshahidiMapView(BrowserView):
         return json.dumps({})
 
     def getTimeline(self):
+        # TODO: implement timeline
         return json.dumps([{"label":"All Categories","color":"#990000","data":[[1333468800000,"1"],[1358438400000,"1"]]}])
 
     def getJSONLayer(self):
