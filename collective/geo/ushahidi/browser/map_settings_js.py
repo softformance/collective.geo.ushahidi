@@ -38,6 +38,8 @@ class JSVariables(BrowserView):
             markerOpacity='0.8',
             markerStokeWidth='2',
             markerStrokeOpacity='0.3',
+            # TODO: check how to properly set start and endTime, probably to
+            # first and last effective dates
             startTime='1333238400',
             endTime='1359676799',
             enableTimeline='true',

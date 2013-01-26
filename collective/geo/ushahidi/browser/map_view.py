@@ -1,7 +1,8 @@
 import json
+import calendar
+from datetime import datetime
 
 from Acquisition import aq_inner
-from DateTime import DateTime
 
 from zope.interface import implements
 from zope.component import getMultiAdapter
@@ -29,15 +30,13 @@ class UshahidiMapView(BrowserView):
         catalog = getToolByName(context, 'portal_catalog')
         portal_types = getToolByName(context, 'portal_types')
 
-        categories = set()
-        ctypes = []
-        ctypes_added = []
-        ctypes_meta = {}
-        years = {}
-        for brain in catalog(path='/'.join(context.getPhysicalPath()),
-            portal_type=self.friendly_types(),
-            sort_on='created'):
-
+        categories = set() # to store unique object keywords
+        ctypes = [] # to store portal type and it's title
+        ctypes_added = [] # to avoid duplicates in content types list
+        ctypes_meta = {} # to cache portal type Titles
+        brains = catalog(path='/'.join(context.getPhysicalPath()),
+            portal_type=self.friendly_types(), sort_on='effective')
+        for brain in brains:
             # populate categories
             if brain.Subject:
                 categories |= set(brain.Subject)
@@ -53,18 +52,6 @@ class UshahidiMapView(BrowserView):
                     ctypes_meta[ptype] = title
                 ctypes.append({'id': ptype, 'title': title})
 
-            # save creation date
-            created = brain.created
-            year = years.setdefault(created.year(), [])
-            # TODO: add month only once for found object
-            year.append({
-                'datetime': created,
-                'label': '%s %s' % (created.aMonth(), created.year()),
-                # TODO: convert to timestamp
-                'timestamp': str(DateTime('%s/01/%s' % (created.month(),
-                    created.year()))),
-            })
-
         # sort our data
         categories = list(categories)
         categories.sort()
@@ -72,8 +59,48 @@ class UshahidiMapView(BrowserView):
         ctypes = list(ctypes)
         ctypes.sort(lambda x,y:cmp(x['title'], y['title']))
 
-        dates = [(k, v) for k, v in years.items()]
-        dates.sort()
+        # prepare dates, for this we just generate range of years and months
+        # between first and last item fetched list of objects
+        dates = []
+        if len(brains) > 0:
+            # skip object w/o set effective date
+            start_brain = None
+            for brain in brains:
+                if brain.effective.year() > 1000:
+                    start_brain = brain
+                    break
+
+            if start_brain:
+                start, end = start_brain.effective, brains[-1].effective
+                first_year, last_year = start.year(), end.year()
+                first_month, last_month = start.month(), end.month()
+
+                for year in range(first_year, last_year+1):
+                    months = []
+
+                    # count from first month only for first year
+                    month_from = 1
+                    if year == first_year:
+                        month_from = first_month
+
+                    # count till last month only for last year
+                    month_to = 12
+                    if year == last_year:
+                        month_to = last_month
+
+                    for month in range(month_from, month_to+1):
+                        dt = datetime(year, month, 1)
+                        months.append({
+                            'datetime': dt,
+                            'label': '%s %s' % (dt.strftime('%b'), year),
+                            'timestamp': calendar.timegm(dt.timetuple()),
+                        })
+
+                    dates.append((year, months))
+
+            # sort by year
+            if dates:
+                dates.sort(lambda x,y: cmp(x[0], y[0]))
 
         return {
             'categories': tuple(categories),
