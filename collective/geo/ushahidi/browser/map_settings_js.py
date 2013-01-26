@@ -38,13 +38,12 @@ class JSVariables(BrowserView):
             markerOpacity='0.8',
             markerStokeWidth='2',
             markerStrokeOpacity='0.3',
-            # TODO: check how to properly set start and endTime, probably to
-            # first and last effective dates
-            startTime='1333238400',
-            endTime='1359676799',
+            startTime='0',
+            endTime='0',
             enableTimeline='true',
             allowClustering='true',
             defaultZoom='13',
+            # TODO: make map auto-center
             defaultLatitude='-1.2873000707050097',
             defaultLongitude='36.821451182008204',
             mainLayerName=context.Title(),

@@ -9,6 +9,7 @@ from zope.component import getMultiAdapter
 
 from Products.Five.browser import BrowserView
 from Products.CMFCore.utils import getToolByName
+from Products.ATContentTypes.utils import DT2dt
 
 from plone.memoize.instance import memoize
 
@@ -35,8 +36,14 @@ class UshahidiMapView(BrowserView):
         ctypes_added = [] # to avoid duplicates in content types list
         ctypes_meta = {} # to cache portal type Titles
         brains = catalog(path='/'.join(context.getPhysicalPath()),
-            portal_type=self.friendly_types(), sort_on='effective')
+            portal_type=self.friendly_types(), sort_on='effective',
+            object_provides=
+                'collective.geo.geographer.interfaces.IGeoreferenceable')
         for brain in brains:
+            # skip if no coordinates set
+            if not brain.zgeo_geometry:
+                continue
+
             # populate categories
             if brain.Subject:
                 categories |= set(brain.Subject)
@@ -66,6 +73,10 @@ class UshahidiMapView(BrowserView):
             # skip object w/o set effective date
             start_brain = None
             for brain in brains:
+                # skip if no coordinates set
+                if not brain.zgeo_geometry:
+                    continue
+
                 if brain.effective.year() > 1000:
                     start_brain = brain
                     break
@@ -119,7 +130,62 @@ class UshahidiMapView(BrowserView):
         return self.getObjectsInfo()['categories']
 
     def getJSONCluster(self):
-        return json.dumps({"type":"FeatureCollection","features":[{"type":"Feature","properties":{"id":"1","name":"<a href='http://210.71.197.91/ushahidi/reports/view/1'>Hello Ushahidi!</a>","link":"http://210.71.197.91/ushahidi/reports/view/1","category":[0],"color":"CC0000","icon":"","thumb":"","timestamp":1333544071,"count":1,"class":"stdClass"},"geometry":{"type":"Point","coordinates":["36.8214511820082","-1.28730007070501"]}},{"type":"Feature","properties":{"id":"2","name":"<a href='http://210.71.197.91/ushahidi/reports/view/2'>Report 1</a>","link":"http://210.71.197.91/ushahidi/reports/view/2","category":[0],"color":"CC0000","icon":"","thumb":"","timestamp":1358514060,"count":1,"class":"stdClass"},"geometry":{"type":"Point","coordinates":["36.825142","-1.298412"]}}]})
+        context = aq_inner(self.context)
+        catalog = getToolByName(context, 'portal_catalog')
+
+        # prepare catalog query
+        query = {
+            'path': '/'.join(context.getPhysicalPath()),
+            'portal_type': self.friendly_types(),
+            'object_provides':
+                'collective.geo.geographer.interfaces.IGeoreferenceable',
+            'sort_on': 'effective'
+        }
+        # apply categories
+        if self.request.get('c'):
+            query['Subject'] = (self.request['c'],)
+        # apply content types
+        if self.request.get('m'):
+            query['portal_type'] = self.request['m']
+        # apply dates
+        # TODO: make range dates filter work
+        date_range = [None, None]
+        start = self.request.get('s')
+        if start and start != '0':
+            date_range[0] = int(start)
+        end = self.request.get('e')
+        if end and end != '0':
+            date_range[1] = int(end)
+        if date_range[0] or date_range[1]:
+            query['effectiveRange'] = date_range
+
+        features = []
+        for brain in catalog(**query):
+            # skip if no coordinates set
+            if not brain.zgeo_geometry:
+                continue
+
+            features.append({
+                'type': 'Feature',
+                'properties': {
+                    'id': brain.UID,
+                    'name': brain.Title,
+                    'link': brain.getURL(),
+                    'category': brain.Subject or [],
+                    'color': 'CC0000',
+                    'icon': '',
+                    'thumb': '',
+                    'timestamp': calendar.timegm(DT2dt(brain.effective
+                        ).timetuple()),
+                    'count': 1,
+                    'class': 'stdClass'
+                },
+                'geometry': brain.zgeo_geometry,
+            })
+
+        # TODO: apply clustering based on zoom level
+
+        return json.dumps({"type":"FeatureCollection", "features": features})
 
     def getJSON(self):
         return json.dumps({})
