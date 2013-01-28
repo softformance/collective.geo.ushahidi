@@ -14,7 +14,7 @@ var ushahidi_startTime = %(startTime)s; // 1333238400 $active_startDate
 var ushahidi_endTime = %(endTime)s; // 1359676799 $active_endDate
 var ushahidi_enableTimeline = %(enableTimeline)s; // true
 var ushahidi_allowClustering = %(allowClustering)s; // true
-var ushahidi_defaultZoom = %(defaultZoom)s; // 13
+var ushahidi_defaultZoom = %(defaultZoom)s; // 8
 var ushahidi_defaultLatitude = %(defaultLatitude)s; // -1.2873000707050097
 var ushahidi_defaultLongitude = %(defaultLongitude)s; // 36.821451182008204
 var ushahidi_mainLayerName = '%(mainLayerName)s'; // Reports
@@ -42,10 +42,10 @@ class JSVariables(BrowserView):
             endTime='0',
             enableTimeline='true',
             allowClustering='true',
-            defaultZoom='13',
+            defaultZoom='8',
             # TODO: make map auto-center
-            defaultLatitude='-1.2873000707050097',
-            defaultLongitude='36.821451182008204',
+            defaultLatitude='23.69781',
+            defaultLongitude='120.96051499999999',
             mainLayerName=context.Title(),
             defaultMap='osm_mapnik',
             imagesLocation='%s/++resource++collective.geo.ushahidi.img/' % purl,
