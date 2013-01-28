@@ -10,6 +10,7 @@ from zope.component import getMultiAdapter
 from Products.Five.browser import BrowserView
 from Products.CMFCore.utils import getToolByName
 from Products.ATContentTypes.utils import DT2dt
+from Products.AdvancedQuery import Eq, Ge, Le, In
 
 from plone.memoize.instance import memoize
 
@@ -154,33 +155,32 @@ class UshahidiMapView(BrowserView):
         catalog = getToolByName(context, 'portal_catalog')
 
         # prepare catalog query
-        query = {
-            'path': '/'.join(context.getPhysicalPath()),
-            'portal_type': self.friendly_types(),
-            'object_provides':
-                'collective.geo.geographer.interfaces.IGeoreferenceable',
-            'sort_on': 'effective'
-        }
+        query = Eq('path', '/'.join(context.getPhysicalPath())) & \
+            In('portal_type', self.friendly_types()) & \
+            Eq('object_provides',
+                'collective.geo.geographer.interfaces.IGeoreferenceable')
+
         # apply categories
         if self.request.get('c'):
-            query['Subject'] = (self.request['c'],)
+            query &= In('Subject', (self.request['c'],))
+
         # apply content types
         if self.request.get('m'):
-            query['portal_type'] = self.request['m']
-        # apply dates
-        # TODO: make range dates filter work
-        date_range = [None, None]
+            query &= Eq('portal_type', self.request['m'])
+
+        # apply 'from' date
         start = self.request.get('s')
         if start and start != '0':
-            date_range[0] = int(start)
+            query &= Ge('expires', int(start))
+
+        # apply 'to' date
         end = self.request.get('e')
         if end and end != '0':
-            date_range[1] = int(end)
-        if date_range[0] or date_range[1]:
-            query['effectiveRange'] = date_range
+            query &= Le('effective', int(end))
 
         features = []
-        for brain in catalog(**query):
+        for brain in catalog.evalAdvancedQuery(query, (
+            ('effective', 'asc'), ('expires', 'desc'))):
             # skip if no coordinates set
             if not brain.zgeo_geometry:
                 continue
