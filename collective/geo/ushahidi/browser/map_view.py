@@ -35,10 +35,12 @@ class UshahidiMapView(BrowserView):
         ctypes = [] # to store portal type and it's title
         ctypes_added = [] # to avoid duplicates in content types list
         ctypes_meta = {} # to cache portal type Titles
-        brains = catalog(path='/'.join(context.getPhysicalPath()),
-            portal_type=self.friendly_types(), sort_on='effective',
-            object_provides=
-                'collective.geo.geographer.interfaces.IGeoreferenceable')
+        query = {'path': '/'.join(context.getPhysicalPath()),
+            'portal_type': self.friendly_types(),
+            'sort_on': 'effective',
+            'object_provides':
+                'collective.geo.geographer.interfaces.IGeoreferenceable'}
+        brains = catalog(**query)
         for brain in brains:
             # skip if no coordinates set
             if not brain.zgeo_geometry:
@@ -82,7 +84,25 @@ class UshahidiMapView(BrowserView):
                     break
 
             if start_brain:
-                start, end = start_brain.effective, brains[-1].effective
+                # now try to find last date, based on expires field
+                end_brain = None
+                query['sort_on'] = 'expires'
+                query['sort_order'] = 'reverse'
+                for brain in catalog(**query):
+                    # skip if no coordinates set
+                    if not brain.zgeo_geometry:
+                        continue
+
+                    if brain.expires.year() < 2499:
+                        end_brain = brain
+                        break
+
+                if not end_brain:
+                    end = brains[-1].effective
+                else:
+                    end = end_brain.expires
+
+                start = start_brain.effective
                 first_year, last_year = start.year(), end.year()
                 first_month, last_month = start.month(), end.month()
 
