@@ -105,13 +105,34 @@ jQuery(function() {
   // Render thee JavaScript for the base layers so that
   // they are accessible by Ushahidi.js
   // TODO: make it configurable, for this we need to rewrite map.php to python
-  var osm_mapnik = new OpenLayers.Layer.OSM.Mapnik("OSM Mapnik", {
-    attribution: "&copy;<a href=\"@ccbysa\">CCBYSA<\/a> 2010\n\t\t\t\t<a href="+
-      "\"@openstreetmap\">OpenStreetMap.org<\/a> contributors",
-    transitionEffect: "resize",
+// Render thee JavaScript for the base layers so that
+  // they are accessible by Ushahidi.js
+  var google_satellite = new OpenLayers.Layer.Google("Google Maps Satellite", {
+    type: google.maps.MapTypeId.SATELLITE,
+    animationEnabled: true,
     sphericalMercator: true,
-    maxExtent: new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,
-      20037508.34)}); 
+    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34,
+      20037508.34)});
+
+  var google_hybrid = new OpenLayers.Layer.Google("Google Maps Hybrid", {
+    type: google.maps.MapTypeId.HYBRID,
+    animationEnabled: true,
+    sphericalMercator: true,
+    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34,
+      20037508.34)});
+
+  var google_normal = new OpenLayers.Layer.Google("Google Maps Normal", {
+    animationEnabled: true,
+    sphericalMercator: true,
+    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34,
+      20037508.34)});
+
+  var google_physical = new OpenLayers.Layer.Google("Google Maps Physical", {
+    type: google.maps.MapTypeId.TERRAIN,
+    animationEnabled: true,
+    sphericalMercator: true,
+    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34,
+      20037508.34)});
   
   // Map configuration
   var config = {
@@ -144,7 +165,8 @@ jQuery(function() {
 
     // Base layers
     // TODO: make it configurable
-    baseLayers: [osm_mapnik],
+    baseLayers: [google_normal, google_satellite, google_hybrid,
+      google_physical],
 
     // Display the map projection
     showProjection: true,
