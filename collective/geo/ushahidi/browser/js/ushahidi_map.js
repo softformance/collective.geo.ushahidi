@@ -105,8 +105,6 @@ jQuery(function() {
   // Render thee JavaScript for the base layers so that
   // they are accessible by Ushahidi.js
   // TODO: make it configurable, for this we need to rewrite map.php to python
-// Render thee JavaScript for the base layers so that
-  // they are accessible by Ushahidi.js
   var google_satellite = new OpenLayers.Layer.Google("Google Maps Satellite", {
     type: google.maps.MapTypeId.SATELLITE,
     animationEnabled: true,

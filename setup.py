@@ -25,6 +25,7 @@ setup(name='collective.geo.ushahidi',
       zip_safe=False,
       install_requires=[
           'setuptools',
+          'Products.AdvancedQuery',
           # -*- Extra requirements: -*-
       ],
       entry_points="""

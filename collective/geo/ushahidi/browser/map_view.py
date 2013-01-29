@@ -161,8 +161,9 @@ class UshahidiMapView(BrowserView):
                 'collective.geo.geographer.interfaces.IGeoreferenceable')
 
         # apply categories
-        if self.request.get('c'):
-            query &= In('Subject', (self.request['c'],))
+        category = self.request.get('c') and [self.request.get('c')] or []
+        if category:
+            query &= In('Subject', category)
 
         # apply content types
         if self.request.get('m'):
@@ -178,13 +179,82 @@ class UshahidiMapView(BrowserView):
         if end and end != '0':
             query &= Le('effective', int(end))
 
-        features = []
+        # get zoom and calculate distance based on zoom
+        zoom = self.request.get('z') and int(self.request.get('z')) or 7
+        distance = float(10000000 >> zoom) / 100000.0
+
+        # query all markers for the map
+        markers = []
         for brain in catalog.evalAdvancedQuery(query, (
             ('effective', 'asc'), ('expires', 'desc'))):
             # skip if no coordinates set
             if not brain.zgeo_geometry:
                 continue
 
+            markers.append({
+                'latitude': brain.zgeo_geometry['coordinates'][1],
+                'longitude': brain.zgeo_geometry['coordinates'][0],
+                'brain': brain,
+            })
+
+        # cluster markers based on zoom level
+        clusters = []
+        singles = []
+        while len(markers) > 0:
+            marker = markers.pop()
+            cluster = []
+
+            for target in markers:
+                pixels = abs(marker['longitude'] - target['longitude']) + \
+                    abs(marker['latitude'] - target['latitude'])
+
+                # if two markers are closer than defined distance, remove
+                # compareMarker from array and add to cluster.
+                if pixels < distance:
+                    markers.pop(markers.index(target))
+                    cluster.append(target)
+
+            # if a marker was added to cluster, also add the marker we were
+            # comparing to
+            if len(cluster) > 0:
+                cluster.append(marker)
+                clusters.append(cluster)
+            else:
+                singles.append(marker)
+
+        # create json from clusters
+        features = []
+        for cluster in clusters:
+            # calculate cluster center
+            bounds = self.calculate_center(cluster)
+
+            # json string for popup window
+            brain = cluster[0]['brain']
+            features.append({
+                'type': 'Feature',
+                'properties': {
+                    'id': brain.UID,
+                    'name': brain.Title,
+                    'link': brain.getURL(),
+                    'category': brain.Subject or [],
+                    'color': 'CC0000',
+                    'icon': '',
+                    'thumb': '',
+                    'timestamp': calendar.timegm(DT2dt(brain.effective
+                        ).timetuple()),
+                    'count': len(cluster),
+                    'class': 'stdClass'
+                },
+                'geometry': {
+                     'type': 'Point',
+                     'coordinates': [bounds['center']['longitude'],
+                         bounds['center']['latitude']]
+                }
+            })
+
+        # pass single points to standard markers json
+        for marker in singles:
+            brain = marker['brain']
             features.append({
                 'type': 'Feature',
                 'properties': {
@@ -203,9 +273,40 @@ class UshahidiMapView(BrowserView):
                 'geometry': brain.zgeo_geometry,
             })
 
-        # TODO: apply clustering based on zoom level
-
         return json.dumps({"type":"FeatureCollection", "features": features})
+
+    def calculate_center(self, cluster):
+        """Calculates average lat and lon of clustered items"""
+        south, west, north, east = 90, 180, -90, -180
+
+        lat_sum = lon_sum = 0
+        for marker in cluster:
+            if marker['latitude'] < south:
+                south = marker['latitude']
+
+            if marker['longitude'] < west:
+                west = marker['longitude']
+
+            if marker['latitude'] > north:
+                north = marker['latitude']
+
+            if marker['longitude'] > east:
+                east = marker['longitude']
+
+            lat_sum += marker['latitude']
+            lon_sum += marker['longitude']
+
+        lat_avg = lat_sum / len(cluster)
+        lon_avg = lon_sum / len(cluster)
+
+        center = {'longitude': lon_avg, 'latitude': lat_avg}
+        sw = {'longitude': west, 'latitude': south}
+        ne = {'longitude': east, 'latitude': north}
+        return {
+            "center": center,
+            "sw": sw,
+            "ne": ne,
+        }
 
     def getJSON(self):
         return json.dumps({})
