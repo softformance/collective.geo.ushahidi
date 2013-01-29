@@ -38,7 +38,7 @@ class UshahidiMapView(BrowserView):
         ctypes_meta = {} # to cache portal type Titles
         query = {'path': '/'.join(context.getPhysicalPath()),
             'portal_type': self.friendly_types(),
-            'sort_on': 'effective',
+            'sort_on': 'start',
             'object_provides':
                 'collective.geo.geographer.interfaces.IGeoreferenceable'}
         brains = catalog(**query)
@@ -73,37 +73,37 @@ class UshahidiMapView(BrowserView):
         # between first and last item fetched list of objects
         dates = []
         if len(brains) > 0:
-            # skip object w/o set effective date
+            # skip object w/o set start date
             start_brain = None
             for brain in brains:
                 # skip if no coordinates set
                 if not brain.zgeo_geometry:
                     continue
 
-                if brain.effective.year() > 1000:
+                if brain.start.year() > 1000:
                     start_brain = brain
                     break
 
             if start_brain:
-                # now try to find last date, based on expires field
+                # now try to find last date, based on end field
                 end_brain = None
-                query['sort_on'] = 'expires'
+                query['sort_on'] = 'end'
                 query['sort_order'] = 'reverse'
                 for brain in catalog(**query):
                     # skip if no coordinates set
                     if not brain.zgeo_geometry:
                         continue
 
-                    if brain.expires.year() < 2499:
+                    if brain.end.year() < 2499:
                         end_brain = brain
                         break
 
                 if not end_brain:
-                    end = brains[-1].effective
+                    end = brains[-1].start
                 else:
-                    end = end_brain.expires
+                    end = end_brain.end
 
-                start = start_brain.effective
+                start = start_brain.start
                 first_year, last_year = start.year(), end.year()
                 first_month, last_month = start.month(), end.month()
 
@@ -172,12 +172,12 @@ class UshahidiMapView(BrowserView):
         # apply 'from' date
         start = self.request.get('s')
         if start and start != '0':
-            query &= Ge('expires', int(start))
+            query &= Ge('end', int(start))
 
         # apply 'to' date
         end = self.request.get('e')
         if end and end != '0':
-            query &= Le('effective', int(end))
+            query &= Le('start', int(end))
 
         # get zoom and calculate distance based on zoom
         zoom = self.request.get('z') and int(self.request.get('z')) or 7
@@ -186,7 +186,7 @@ class UshahidiMapView(BrowserView):
         # query all markers for the map
         markers = []
         for brain in catalog.evalAdvancedQuery(query, (
-            ('effective', 'asc'), ('expires', 'desc'))):
+            ('start', 'asc'), ('end', 'desc'))):
             # skip if no coordinates set
             if not brain.zgeo_geometry:
                 continue
@@ -240,7 +240,7 @@ class UshahidiMapView(BrowserView):
                     'color': 'CC0000',
                     'icon': '',
                     'thumb': '',
-                    'timestamp': calendar.timegm(DT2dt(brain.effective
+                    'timestamp': calendar.timegm(DT2dt(brain.start
                         ).timetuple()),
                     'count': len(cluster),
                     'class': 'stdClass'
@@ -265,7 +265,7 @@ class UshahidiMapView(BrowserView):
                     'color': 'CC0000',
                     'icon': '',
                     'thumb': '',
-                    'timestamp': calendar.timegm(DT2dt(brain.effective
+                    'timestamp': calendar.timegm(DT2dt(brain.start
                         ).timetuple()),
                     'count': 1,
                     'class': 'stdClass'
