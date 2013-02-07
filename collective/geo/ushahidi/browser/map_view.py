@@ -230,6 +230,11 @@ class UshahidiMapView(BrowserView):
 
             # json string for popup window
             brain = cluster[0]['brain']
+
+            start = brain.start or ''
+            if start:
+                start = calendar.timegm(DT2dt(start).timetuple())
+
             features.append({
                 'type': 'Feature',
                 'properties': {
@@ -240,8 +245,7 @@ class UshahidiMapView(BrowserView):
                     'color': 'CC0000',
                     'icon': '',
                     'thumb': '',
-                    'timestamp': calendar.timegm(DT2dt(brain.start
-                        ).timetuple()),
+                    'timestamp': start,
                     'count': len(cluster),
                     'class': 'stdClass'
                 },
@@ -255,6 +259,11 @@ class UshahidiMapView(BrowserView):
         # pass single points to standard markers json
         for marker in singles:
             brain = marker['brain']
+
+            start = brain.start or ''
+            if start:
+                start = calendar.timegm(DT2dt(start).timetuple())
+
             features.append({
                 'type': 'Feature',
                 'properties': {
@@ -265,8 +274,7 @@ class UshahidiMapView(BrowserView):
                     'color': 'CC0000',
                     'icon': '',
                     'thumb': '',
-                    'timestamp': calendar.timegm(DT2dt(brain.start
-                        ).timetuple()),
+                    'timestamp': start,
                     'count': 1,
                     'class': 'stdClass'
                 },
