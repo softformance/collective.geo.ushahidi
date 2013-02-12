@@ -5,7 +5,7 @@ from datetime import datetime
 from Acquisition import aq_inner
 
 from zope.interface import implements
-from zope.component import getMultiAdapter
+from zope.component import getMultiAdapter, getUtility
 
 from Products.Five.browser import BrowserView
 from Products.CMFCore.utils import getToolByName
@@ -13,8 +13,10 @@ from Products.ATContentTypes.utils import DT2dt
 from Products.AdvancedQuery import Eq, Ge, Le, In
 
 from plone.memoize.instance import memoize
+from plone.registry.interfaces import IRegistry
 
 from .interfaces import IUshahidiMapView
+from .map_settings_js import DEFAULT_MARKER_COLOR
 
 
 class UshahidiMapView(BrowserView):
@@ -148,7 +150,19 @@ class UshahidiMapView(BrowserView):
 
     def getCategories(self):
         """Returns list of keywords used in sub-objects of context"""
-        return self.getObjectsInfo()['categories']
+        result = []
+        for cat in self.getObjectsInfo()['categories']:
+            result.append({
+                'label': cat,
+                'color': '#' + self.getCategoryColor(cat),
+            })
+        return tuple(result)
+
+    def getCategoryColor(self, category, default=DEFAULT_MARKER_COLOR):
+        """Returns category color from registry"""
+        registry = getUtility(IRegistry)
+        colors = registry['collective.geo.ushahidi.keywords_colors']
+        return colors.get(category, default)
 
     def getJSONCluster(self):
         context = aq_inner(self.context)
@@ -162,8 +176,11 @@ class UshahidiMapView(BrowserView):
 
         # apply categories
         category = self.request.get('c') and [self.request.get('c')] or []
+        color = DEFAULT_MARKER_COLOR
         if category:
             query &= In('Subject', category)
+            color = self.getCategoryColor(category[0],
+                default=DEFAULT_MARKER_COLOR)
 
         # apply content types
         if self.request.get('m'):
@@ -242,7 +259,7 @@ class UshahidiMapView(BrowserView):
                     'name': brain.Title,
                     'link': brain.getURL(),
                     'category': brain.Subject or [],
-                    'color': 'CC0000',
+                    'color': color,
                     'icon': '',
                     'thumb': '',
                     'timestamp': start,
@@ -271,7 +288,7 @@ class UshahidiMapView(BrowserView):
                     'name': brain.Title,
                     'link': brain.getURL(),
                     'category': brain.Subject or [],
-                    'color': 'CC0000',
+                    'color': color,
                     'icon': '',
                     'thumb': '',
                     'timestamp': start,
@@ -321,7 +338,11 @@ class UshahidiMapView(BrowserView):
 
     def getTimeline(self):
         # TODO: implement timeline
-        return json.dumps([{"label":"All Categories","color":"#990000","data":[[1333468800000,"1"],[1358438400000,"1"]]}])
+        return json.dumps([{
+            "label": "All Categories",
+            "color": DEFAULT_MARKER_COLOR,
+            "data": [[1333468800000,"1"],[1358438400000,"1"]]
+        }])
 
     def getJSONLayer(self):
         return json.dumps({})

@@ -3,6 +3,8 @@ from zope.publisher.browser import BrowserView
 from Products.CMFCore.utils import getToolByName
 
 
+DEFAULT_MARKER_COLOR = 'CC0000'
+
 # TODO: make below settings configurable via Ushahidi Settings tab on folderish
 # objects
 TEMPLATE = """\

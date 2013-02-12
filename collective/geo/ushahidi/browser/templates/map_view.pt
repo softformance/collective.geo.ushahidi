@@ -89,16 +89,19 @@
     <ul class="category-filters" id="category_switch">
       <li>
         <a href="#" id="cat_" class="active">
+          <span class="swatch" style="background-color:#CC0000"><!-- --></span>
           <span class="category-title">All Categories</span>
         </a>
       </li>
       <tal:cats repeat="cat view/getCategories">
       <li>
         <a title="Category 1" id="cat_" href="#"
-           tal:attributes="title cat;
-                           id string:${attrs/id}${cat}">
+           tal:attributes="title cat/label;
+                           id string:${attrs/id}${cat/label}">
+          <span class="swatch" style="background-color:%s"
+                tal:attributes="style python:attrs['style'] % cat['color']"><!-- --></span>
           <span class="category-title"
-                tal:content="cat">Category 1</span>
+                tal:content="cat/label">Category 1</span>
         </a>
       </li>
       </tal:cats>
