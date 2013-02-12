@@ -36,12 +36,13 @@ class UshahidiMapView(BrowserView):
         ctypes = [] # to store portal type and it's title
         ctypes_added = [] # to avoid duplicates in content types list
         ctypes_meta = {} # to cache portal type Titles
-        query = {'path': '/'.join(context.getPhysicalPath()),
-            'portal_type': self.friendly_types(),
-            'sort_on': 'start',
-            'object_provides':
-                'collective.geo.geographer.interfaces.IGeoreferenceable'}
-        brains = catalog(**query)
+
+        query = Eq('path', '/'.join(context.getPhysicalPath())) & \
+            In('portal_type', self.friendly_types()) & \
+            Eq('object_provides',
+                'collective.geo.geographer.interfaces.IGeoreferenceable')
+
+        brains = catalog.evalAdvancedQuery(query, (('start', 'asc'),))
         for brain in brains:
             # skip if no coordinates set
             if not brain.zgeo_geometry:
@@ -54,13 +55,13 @@ class UshahidiMapView(BrowserView):
             # populate types
             ptype = brain.portal_type
             if ptype not in ctypes_added:
-                ctypes_added.append(ptype)
                 if ptype in ctypes_meta:
                     title = ctypes_meta[ptype]
                 else:
                     title = portal_types.getTypeInfo(ptype).title
                     ctypes_meta[ptype] = title
                 ctypes.append({'id': ptype, 'title': title})
+                ctypes_added.append(ptype)
 
         # sort our data
         categories = list(categories)
@@ -87,9 +88,8 @@ class UshahidiMapView(BrowserView):
             if start_brain:
                 # now try to find last date, based on end field
                 end_brain = None
-                query['sort_on'] = 'end'
-                query['sort_order'] = 'reverse'
-                for brain in catalog(**query):
+                for brain in catalog.evalAdvancedQuery(query,
+                    (('end', 'desc'),)):
                     # skip if no coordinates set
                     if not brain.zgeo_geometry:
                         continue
