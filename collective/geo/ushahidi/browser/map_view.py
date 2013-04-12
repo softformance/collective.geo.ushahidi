@@ -83,7 +83,7 @@ class UshahidiMapView(BrowserView):
                 if not brain.zgeo_geometry:
                     continue
 
-                if brain.start.year() > 1000:
+                if brain.start and brain.start.year() > 1000:
                     start_brain = brain
                     break
 
@@ -96,7 +96,7 @@ class UshahidiMapView(BrowserView):
                     if not brain.zgeo_geometry:
                         continue
 
-                    if brain.end.year() < 2499:
+                    if brain.end and brain.end.year() < 2499:
                         end_brain = brain
                         break
 
@@ -109,28 +109,29 @@ class UshahidiMapView(BrowserView):
                 first_year, last_year = start.year(), end.year()
                 first_month, last_month = start.month(), end.month()
 
-                for year in range(first_year, last_year+1):
-                    months = []
+                if first_year and last_year:
+                    for year in range(first_year, last_year+1):
+                        months = []
 
-                    # count from first month only for first year
-                    month_from = 1
-                    if year == first_year:
-                        month_from = first_month
+                        # count from first month only for first year
+                        month_from = 1
+                        if year == first_year:
+                            month_from = first_month
 
-                    # count till last month only for last year
-                    month_to = 12
-                    if year == last_year:
-                        month_to = last_month
+                        # count till last month only for last year
+                        month_to = 12
+                        if year == last_year:
+                            month_to = last_month
 
-                    for month in range(month_from, month_to+1):
-                        dt = datetime(year, month, 1)
-                        months.append({
-                            'datetime': dt,
-                            'label': '%s %s' % (dt.strftime('%b'), year),
-                            'timestamp': calendar.timegm(dt.timetuple()),
-                        })
+                        for month in range(month_from, month_to+1):
+                            dt = datetime(year, month, 1)
+                            months.append({
+                                'datetime': dt,
+                                'label': '%s %s' % (dt.strftime('%b'), year),
+                                'timestamp': calendar.timegm(dt.timetuple()),
+                            })
 
-                    dates.append((year, months))
+                        dates.append((year, months))
 
             # sort by year
             if dates:

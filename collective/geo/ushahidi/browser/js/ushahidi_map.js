@@ -252,25 +252,28 @@ jQuery(function() {
   });
     
   // Timeslider and date change actions
-  $("select#startDate, select#endDate").selectToUISlider({
-    labels: 4,
-    labelSrc: 'text',
-    sliderOptions: {
-      change: function(e, ui) {
-        var from = $("#startDate").val();
-        var to = $("#endDate").val();
+  if ($('select#startDate option').length > 0 &&
+      $('select#endDate option').length > 0) {
+    $("select#startDate, select#endDate").selectToUISlider({
+      labels: 4,
+      labelSrc: 'text',
+      sliderOptions: {
+        change: function(e, ui) {
+          var from = $("#startDate").val();
+          var to = $("#endDate").val();
 
-        if (to > from && (from != startTime || to != endTime)) {
-          // Update the report filters
-          startTime = from;
-          endTime = to;
-          map.updateReportFilters({s: from, e: to});
+          if (to > from && (from != startTime || to != endTime)) {
+            // Update the report filters
+            startTime = from;
+            endTime = to;
+            map.updateReportFilters({s: from, e: to});
+          }
+
+          e.stopPropagation();
         }
-
-        e.stopPropagation();
       }
-    }
-  });
+    });
+  };
   
   // Media Filter Action
   $('.filters li a').click(function() {
