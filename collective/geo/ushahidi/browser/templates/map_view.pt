@@ -178,8 +178,9 @@
                         tal:attributes="label python:year[0]">
                 <tal:months repeat="month months">
                 <option value="1333238400"
-                        tal:attributes="value month/timestamp"
-                        tal:content="month/label">Apr 2012</option>
+                        tal:content="month/label"
+                        tal:attributes="selected python:repeat['month'].last and 'selected' or None;
+                                        value month/timestamp">Apr 2012</option>
                 </tal:months>
               </optgroup>
               </tal:years>

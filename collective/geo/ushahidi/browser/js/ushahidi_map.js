@@ -34,12 +34,27 @@ function refreshTimeline(options) {
 
   var url = ushahidi_baseUrl + '/@@ushahidi-timeline';
 
-  var interval = (options.e - options.s) / (3600 * 24);
+  var start = options.s, end = options.e;
+  if (start == 0) {
+    start = $("#startDate").val();
+    startTime = start;
+    options.s = start;
+  }
+  if (end == 0) {
+    end = $("#endDate").val();
+    endTime = end;
+    options.e = end;
+  }
+
+  var interval = (end - start) / (3600 * 24);
 
   if (interval <= 3) {
+    // TODO: not implemented on server side
     options.i = "hour";
-  } else if (interval <= (31 * 6)) {
+  } else if (interval <= (31 * 2)) {
     options.i = "day";
+  } else if (interval <= (31 * 6)) {
+    options.i = "week";
   } else {
     options.i = "month";
   }
@@ -185,7 +200,7 @@ jQuery(function() {
   }, true, true);
 
 
-  // Register the referesh timeline function as a callback
+  // Register the refresh timeline function as a callback
   map.register("filterschanged", refreshTimeline);
   setTimeout(function() { refreshTimeline({
     s: startTime,

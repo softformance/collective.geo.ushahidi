@@ -1,6 +1,7 @@
 import json
 import calendar
 from datetime import datetime
+from DateTime import DateTime
 
 from Acquisition import aq_inner
 
@@ -165,23 +166,18 @@ class UshahidiMapView(BrowserView):
         colors = registry['collective.geo.ushahidi.keywords_colors']
         return colors.get(category, default)
 
-    def getJSONCluster(self):
+    def _prepare_query(self):
+        """Return query for catalog"""
         context = aq_inner(self.context)
-        catalog = getToolByName(context, 'portal_catalog')
-
-        # prepare catalog query
         query = Eq('path', '/'.join(context.getPhysicalPath())) & \
             In('portal_type', self.friendly_types()) & \
             Eq('object_provides',
                 'collective.geo.geographer.interfaces.IGeoreferenceable')
 
-        # apply categories
+        # check if we need to apply category filter
         category = self.request.get('c') and [self.request.get('c')] or []
-        color = DEFAULT_MARKER_COLOR
         if category:
             query &= In('Subject', category)
-            color = self.getCategoryColor(category[0],
-                default=DEFAULT_MARKER_COLOR)
 
         # apply content types
         if self.request.get('m'):
@@ -197,9 +193,26 @@ class UshahidiMapView(BrowserView):
         if end and end != '0':
             query &= Le('start', int(end))
 
+        return query
+
+    def _get_category_color(self):
+        category = self.request.get('c') and [self.request.get('c')] or []
+        color = DEFAULT_MARKER_COLOR
+        if category:
+            color = self.getCategoryColor(category[0],
+                default=DEFAULT_MARKER_COLOR)
+        return color
+
+    def getJSONCluster(self):
+        context = aq_inner(self.context)
+        catalog = getToolByName(context, 'portal_catalog')
+        purl = getToolByName(context, 'portal_url')()
+
         # get zoom and calculate distance based on zoom
+        color = self._get_category_color()
         zoom = self.request.get('z') and int(self.request.get('z')) or 7
         distance = float(10000000 >> zoom) / 100000.0
+        query = self._prepare_query()
 
         # query all markers for the map
         markers = []
@@ -253,12 +266,13 @@ class UshahidiMapView(BrowserView):
             if start:
                 start = calendar.timegm(DT2dt(start).timetuple())
 
+            uids = '&'.join(['UID=%s' % m['brain'].UID for m in cluster])
             features.append({
                 'type': 'Feature',
                 'properties': {
                     'id': brain.UID,
-                    'name': brain.Title,
-                    'link': brain.getURL(),
+                    'name': '%d Items' % len(cluster),
+                    'link': '%s/@@search?%s' % (purl, uids),
                     'category': brain.Subject or [],
                     'color': color,
                     'icon': '',
@@ -338,12 +352,189 @@ class UshahidiMapView(BrowserView):
         return json.dumps({})
 
     def getTimeline(self):
-        # TODO: implement timeline
+        data = []
+
+        markers = []
+        query = self._prepare_query()
+        catalog = getToolByName(self.context, 'portal_catalog')
+        for brain in catalog.evalAdvancedQuery(query, (
+            ('start', 'asc'), ('end', 'desc'))):
+            # skip if no coordinates set
+            if not brain.zgeo_geometry:
+                continue
+
+            if not brain.start or brain.start.year() <= 1000:
+                continue
+
+            markers.append(brain)
+
+        # prepare data from request
+        interval = self.request.get('i', '') or 'month'
+        start = DateTime(int(self.request['s']))
+        end = DateTime(int(self.request['e']))
+
+        # 'month' interval
+        if interval == 'month':
+            months = {}
+            for year, month, last_day in self._getMonthsRange(start, end):
+                _from = DateTime(year, month, 1).earliestTime()
+                _to = DateTime(year, month, last_day).latestTime()
+                _date = calendar.timegm(datetime(year, month, 1).timetuple()
+                    ) * 1000
+                months.setdefault(_date, 0)
+                for marker in markers:
+                    if self._isObjWithinPeriod(marker, _from, _to):
+                        months[_date] += 1
+
+            # sort and filter out 'zero' months
+            keys = months.keys()
+            keys.sort()
+            data = [[key, months[key]] for key in keys if months[key]]
+
+        # 'week' interval
+        if interval == 'week':
+            weeks = {}
+            for year, month, first_day, last_day in self._getWeeksRange(start,
+                end):
+                _from = DateTime(year, month, first_day).earliestTime()
+                _to = DateTime(year, month, last_day).latestTime()
+                _date = calendar.timegm(datetime(year, month,
+                    first_day).timetuple()) * 1000
+                weeks.setdefault(_date, 0)
+                for marker in markers:
+                    if self._isObjWithinPeriod(marker, _from, _to):
+                        weeks[_date] += 1
+
+            # sort and filter out 'zero' weeks
+            keys = weeks.keys()
+            keys.sort()
+            data = [[key, weeks[key]] for key in keys if weeks[key]]
+
+        # 'day' interval
+        if interval == 'day':
+            days = {}
+            for year, month, day in self._getDaysRange(start, end):
+                _from = DateTime(year, month, day).earliestTime()
+                _to = DateTime(year, month, day).latestTime()
+                _date = calendar.timegm(datetime(year, month, day).timetuple()
+                    ) * 1000
+                days.setdefault(_date, 0)
+                for marker in markers:
+                    if self._isObjWithinPeriod(marker, _from, _to):
+                        days[_date] += 1
+
+            # sort and filter out 'zero' days
+            keys = days.keys()
+            keys.sort()
+            data = [[key, days[key]] for key in keys if days[key]]
+
         return json.dumps([{
-            "label": "All Categories",
-            "color": DEFAULT_MARKER_COLOR,
-            "data": [[1333468800000,"1"],[1358438400000,"1"]]
+            "label": self.request.get('c', '') or "All Categories",
+            "color": self._get_category_color(),
+            "data": data
         }])
+
+    def _isObjWithinPeriod(self, brain, _from, _to):
+        """Checks whether given object is lasting during passed month"""
+        # no start set
+        if not brain.start or brain.start.year() <= 1000:
+            return False
+
+        # is object after the end date?
+        start = brain.start
+        if start.greaterThan(_to):
+            return False
+
+        # if end date is set
+        end = None
+        if brain.end and brain.end.year() < 2499:
+            end = brain.end
+            # is object before the start date
+            if end.lessThan(_from):
+                return False
+
+        return True
+
+    def _getDaysRange(self, start, end):
+        """Returns list of (year, month, day) tuples for passed
+        start and end DateTimes.
+        """
+        my_cal = calendar.Calendar()
+        first_year, last_year = start.year(), end.year()
+        first_month, last_month = start.month(), end.month()
+
+        days = []
+        for year in range(first_year, last_year+1):
+            # count from first month only for first year
+            month_from = 1
+            if year == first_year:
+                month_from = first_month
+
+            # count till last month only for last year
+            month_to = 12
+            if year == last_year:
+                month_to = last_month
+
+            for month in range(month_from, month_to+1):
+                # loop over days in a month of the year
+                days.extend([(year, month, day)
+                    for day in my_cal.itermonthdays(year, month) if day])
+
+        return days
+
+    def _getWeeksRange(self, start, end):
+        """Returns list of (year, month, first_day, last_day) tuples for passed
+        start and end DateTimes.
+        """
+        my_cal = calendar.Calendar()
+        first_year, last_year = start.year(), end.year()
+        first_month, last_month = start.month(), end.month()
+
+        weeks = []
+        for year in range(first_year, last_year+1):
+            # count from first month only for first year
+            month_from = 1
+            if year == first_year:
+                month_from = first_month
+
+            # count till last month only for last year
+            month_to = 12
+            if year == last_year:
+                month_to = last_month
+
+            for month in range(month_from, month_to+1):
+                # loop over weeks in a month of the year
+                for week in my_cal.monthdayscalendar(year, month):
+                    # filter out zero days
+                    temp = [d for d in week if d]
+                    weeks.append((year, month, temp[0], temp[-1]))
+
+        return weeks
+
+    def _getMonthsRange(self, start, end):
+        """Returns list of (year, month, last_day) tuples for passed
+        start and end DateTimes.
+        """
+        first_year, last_year = start.year(), end.year()
+        first_month, last_month = start.month(), end.month()
+
+        months = []
+        for year in range(first_year, last_year+1):
+            # count from first month only for first year
+            month_from = 1
+            if year == first_year:
+                month_from = first_month
+
+            # count till last month only for last year
+            month_to = 12
+            if year == last_year:
+                month_to = last_month
+
+            for month in range(month_from, month_to+1):
+                months.append((year, month,
+                    calendar.monthrange(year, month)[1]))
+
+        return months
 
     def getJSONLayer(self):
         return json.dumps({})
