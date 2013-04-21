@@ -358,9 +358,11 @@ class UshahidiMapView(BrowserView):
         for brain in catalog.evalAdvancedQuery(query, (
             ('start', 'asc'), ('end', 'desc'))):
             # skip if no coordinates set
-            if not brain.zgeo_geometry:
+            has_markers = self._get_markers(brain)
+            if not has_markers:
                 continue
 
+            # skip if there is no valid start date set
             if not brain.start or brain.start.year() <= 1000:
                 continue
 
