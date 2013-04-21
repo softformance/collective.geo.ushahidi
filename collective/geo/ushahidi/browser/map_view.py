@@ -13,6 +13,7 @@ from Products.CMFCore.utils import getToolByName
 from Products.ATContentTypes.utils import DT2dt
 from Products.AdvancedQuery import Eq, Ge, Le, In
 
+from plone.uuid.interfaces import IUUID
 from plone.memoize.instance import memoize
 from plone.registry.interfaces import IRegistry
 
@@ -48,12 +49,13 @@ class UshahidiMapView(BrowserView):
         brains = catalog.evalAdvancedQuery(query, (('start', 'asc'),))
         for brain in brains:
             # skip if no coordinates set
-            if not brain.zgeo_geometry:
+            markers = self._get_markers(brain)
+            if not markers:
                 continue
 
             # populate categories
-            if brain.Subject:
-                categories |= set(brain.Subject)
+            if markers[0]['tags']:
+                categories |= set(markers[0]['tags'])
 
             # populate types
             ptype = brain.portal_type
@@ -81,7 +83,8 @@ class UshahidiMapView(BrowserView):
             start_brain = None
             for brain in brains:
                 # skip if no coordinates set
-                if not brain.zgeo_geometry:
+                markers = self._get_markers(brain)
+                if not markers:
                     continue
 
                 if brain.start and brain.start.year() > 1000:
@@ -94,7 +97,8 @@ class UshahidiMapView(BrowserView):
                 for brain in catalog.evalAdvancedQuery(query,
                     (('end', 'desc'),)):
                     # skip if no coordinates set
-                    if not brain.zgeo_geometry:
+                    markers = self._get_markers(brain)
+                    if not markers:
                         continue
 
                     if brain.end and brain.end.year() < 2499:
@@ -216,17 +220,13 @@ class UshahidiMapView(BrowserView):
 
         # query all markers for the map
         markers = []
+        added = []
         for brain in catalog.evalAdvancedQuery(query, (
             ('start', 'asc'), ('end', 'desc'))):
-            # skip if no coordinates set
-            if not brain.zgeo_geometry:
-                continue
-
-            markers.append({
-                'latitude': brain.zgeo_geometry['coordinates'][1],
-                'longitude': brain.zgeo_geometry['coordinates'][0],
-                'brain': brain,
-            })
+            for m in self._get_markers(brain):
+                if m['uid'] not in added:
+                    markers.append(m)
+                    added.append(m['uid'])
 
         # cluster markers based on zoom level
         clusters = []
@@ -260,20 +260,20 @@ class UshahidiMapView(BrowserView):
             bounds = self.calculate_center(cluster)
 
             # json string for popup window
-            brain = cluster[0]['brain']
+            marker = cluster[0]
 
-            start = brain.start or ''
+            start = marker['start']
             if start:
                 start = calendar.timegm(DT2dt(start).timetuple())
 
-            uids = '&'.join(['UID=%s' % m['brain'].UID for m in cluster])
+            uids = '&'.join(['UID=%s' % m['uid'] for m in cluster])
             features.append({
                 'type': 'Feature',
                 'properties': {
-                    'id': brain.UID,
+                    'id': marker['uid'],
                     'name': '%d Items' % len(cluster),
                     'link': '%s/@@search?%s' % (purl, uids),
-                    'category': brain.Subject or [],
+                    'category': marker['tags'],
                     'color': color,
                     'icon': '',
                     'thumb': '',
@@ -290,19 +290,17 @@ class UshahidiMapView(BrowserView):
 
         # pass single points to standard markers json
         for marker in singles:
-            brain = marker['brain']
-
-            start = brain.start or ''
+            start = marker['start']
             if start:
                 start = calendar.timegm(DT2dt(start).timetuple())
 
             features.append({
                 'type': 'Feature',
                 'properties': {
-                    'id': brain.UID,
-                    'name': brain.Title,
-                    'link': brain.getURL(),
-                    'category': brain.Subject or [],
+                    'id': marker['uid'],
+                    'name': marker['title'],
+                    'link': marker['url'],
+                    'category': marker['tags'],
                     'color': color,
                     'icon': '',
                     'thumb': '',
@@ -310,7 +308,7 @@ class UshahidiMapView(BrowserView):
                     'count': 1,
                     'class': 'stdClass'
                 },
-                'geometry': brain.zgeo_geometry,
+                'geometry': marker['geometry'],
             })
 
         return json.dumps({"type":"FeatureCollection", "features": features})
@@ -538,3 +536,21 @@ class UshahidiMapView(BrowserView):
 
     def getJSONLayer(self):
         return json.dumps({})
+
+    @memoize
+    def _get_markers(self, brain):
+        """Return dict of marker details."""
+        markers = []
+        if brain.zgeo_geometry:
+            markers.append({
+                'uid': brain.UID,
+                'url': brain.getURL(),
+                'title': brain.Title,
+                'tags': brain.Subject or [],
+                'start': brain.start or '',
+                'end': brain.end or '',
+                'geometry': brain.zgeo_geometry,
+                'latitude': brain.zgeo_geometry['coordinates'][1],
+                'longitude': brain.zgeo_geometry['coordinates'][0],
+            })
+        return markers
