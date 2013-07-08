@@ -116,6 +116,7 @@
     <div class="floatbox">
 
       <!-- filters -->
+<!--
       <div class="filters clearingfix">
         <div style="float:left; width: 100%">
           <strong>Filters</strong>
@@ -132,6 +133,7 @@
           </ul>
         </div>
       </div>
+-->
       <!-- / filters -->
 
       <!-- map -->
