@@ -48,13 +48,16 @@ function refreshTimeline(options) {
 
   var interval = (end - start) / (3600 * 24);
 
+  var dateFormat = '%#d&nbsp;%b<br />%Y';
   if (interval <= 3) {
     // TODO: not implemented on server side
     options.i = "hour";
   } else if (interval <= (31 * 2)) {
     options.i = "day";
+    dateFormat = '&nbsp;%#d<br />%b';
   } else if (interval <= (31 * 6)) {
     options.i = "week";
+    dateFormat = '&nbsp;%#d<br />%b';
   } else {
     options.i = "month";
   }
@@ -96,7 +99,7 @@ function refreshTimeline(options) {
           xaxis: {
             renderer: $.jqplot.DateAxisRenderer,
             tickOptions: {
-              formatString: '%#d&nbsp;%b\n%Y'
+              formatString: dateFormat
             }
           },
           yaxis: {
