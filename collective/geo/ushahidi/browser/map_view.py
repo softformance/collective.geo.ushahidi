@@ -266,7 +266,7 @@ class UshahidiMapView(BrowserView):
             if start:
                 start = calendar.timegm(DT2dt(start).timetuple())
 
-            uids = '&'.join(['UID=%s' % m['uid'] for m in cluster])
+            uids = '&'.join(['UID=%s' % m['search_uid'] for m in cluster])
             features.append({
                 'type': 'Feature',
                 'properties': {
@@ -546,6 +546,7 @@ class UshahidiMapView(BrowserView):
         if brain.zgeo_geometry:
             markers.append({
                 'uid': brain.UID,
+                'search_uid': brain.UID,
                 'url': brain.getURL(),
                 'title': brain.Title,
                 'tags': brain.Subject or [],
