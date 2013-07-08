@@ -215,7 +215,7 @@ class UshahidiMapView(BrowserView):
         # get zoom and calculate distance based on zoom
         color = self._get_category_color()
         zoom = self.request.get('z') and int(self.request.get('z')) or 7
-        distance = float(10000000 >> zoom) / 100000.0
+        distance = (10000000 >> zoom) / 100000
         query = self._prepare_query()
 
         # query all markers for the map
@@ -235,7 +235,7 @@ class UshahidiMapView(BrowserView):
             marker = markers.pop()
             cluster = []
 
-            for target in markers:
+            for target in markers[:]:
                 pixels = abs(marker['longitude'] - target['longitude']) + \
                     abs(marker['latitude'] - target['latitude'])
 
