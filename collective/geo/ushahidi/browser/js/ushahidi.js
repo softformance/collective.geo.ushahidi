@@ -814,14 +814,14 @@
 		    event.feature.attributes.link != '') {
 
 		    content += "<a href='"+event.feature.attributes.link+"'>" +
-			    "More Information</a><br/>";
+			    "瀏覽展演活動資訊</a><br/>";
 		}
 
-		content += "<a id=\"zoomIn\">";
-		content += "Zoom In</a>";
+		content += "地圖比例尺切換: &nbsp;&nbsp;<a id=\"zoomIn\">";
+		content += "放大</a>";
 		content += "&nbsp;&nbsp;|&nbsp;&nbsp;";
 		content += "<a id=\"zoomOut\">";
-		content += "Zoom Out</a></div>";
+		content += "縮小</a></div>";
 		content += "</div><div style=\"clear:both;\"></div></div>";		
 
 		if (content.search("<script") != -1) {

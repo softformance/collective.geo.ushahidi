@@ -1,3 +1,6 @@
+#!/usrbin/env python
+# -*- coding: utf-8 -*-
+
 import json
 import calendar
 from datetime import datetime
@@ -271,7 +274,7 @@ class UshahidiMapView(BrowserView):
                 'type': 'Feature',
                 'properties': {
                     'id': marker['uid'],
-                    'name': '%d Items' % len(cluster),
+                    'name': '%d 處活動地點' % len(cluster),
                     'link': '%s/@@search?%s' % (purl, uids),
                     'category': marker['tags'],
                     'color': color,
